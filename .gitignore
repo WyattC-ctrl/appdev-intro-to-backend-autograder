@@ -1,0 +1,14 @@
+# Student grades and any submissions
+grades/
+Submissions*/
+*.zip
+
+# Local environment
+.venv/
+venv/
+.env
+
+# Generated files
+__pycache__/
+*.pyc
+.DS_Store
