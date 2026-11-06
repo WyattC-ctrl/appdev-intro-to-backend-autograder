@@ -94,7 +94,7 @@ class GraderTestCase(unittest.TestCase):
 
     def sheet(self, name):
         # Each run writes to a subfolder named for its test file.
-        return next(self.out.glob(f"*/{name}.txt")).read_text()
+        return next(self.out.glob(f"*/sheets/{name}.txt")).read_text()
 
     def write_test_file(self, name, source):
         path = self.tmp / name

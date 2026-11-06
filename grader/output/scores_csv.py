@@ -1,9 +1,8 @@
 """Write the scores CSV uploaded to CMS."""
 import csv
 
-from grader.paths import assignment_id
+from grader.paths import FILE_PREFIX, assignment_id
 
-FILE_PREFIX = "CS_1998_S603"
 SCORE_COLUMNS = {"PA1": "PA1 - Reddit", "PA2": "PA2 - Venmo (BASIC)"}
 
 

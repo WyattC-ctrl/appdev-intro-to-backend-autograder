@@ -36,11 +36,21 @@ Everything goes in `grades/`, with a separate folder for each test:
 
 ```
 grades/PA2/
-  abc123.txt                     one grade sheet per student
-  CS_1998_S603_PA2_scores.csv    the file to upload to CMS
+  CS_1998_S603_PA2_scores.csv    upload to CMS as the scores
+  CS_1998_S603_PA2_feedback.zip  upload to CMS as the feedback files
+  sheets/
+    abc123.txt                   one grade sheet per student
 ```
 
 Rerunning a test replaces that test's results and leaves other tests alone.
+
+The feedback zip has one folder per NetID, with that student's sheet inside as `PA2_feedback.txt`:
+
+```
+feedback_template/
+  abc123/PA2_feedback.txt
+  def456/PA2_feedback.txt
+```
 
 ## Grade sheet format
 
@@ -149,7 +159,7 @@ Notes:
 Check that no student's tests failed to run:
 
 ```bash
-grep -l "could not run" grades/PA2/*.txt
+grep -l "could not run" grades/PA2/sheets/*.txt
 ```
 
 A few names usually mean a problem with those students' code. If most students are listed, read the note on one of their sheets, fix the cause, and run the tool again.
@@ -174,7 +184,7 @@ grader/
   running/            runs each student's app and tests
   submissions/        extracts zips and checks their contents
   test_files/         reads tests and tiers from a test file
-  output/             grade sheets, scores CSV, and test listings
+  output/             grade sheets, scores CSV, feedback zip, and test listings
   style/              style feedback
 assignment_tests/     pa1_test.py to pa4_test.py
 tests/                tests for the tool

@@ -50,17 +50,17 @@ class CliTests(GraderTestCase):
         self.student_zip("stu", submission(PA2_APP))
         pa1_copy = self.write_test_file("pa1_test.py", PA1.read_text())
         self.grade(test=PA2)
-        pa2_sheet = (self.out / "PA2" / "stu.txt").read_text()
+        pa2_sheet = (self.out / "PA2" / "sheets" / "stu.txt").read_text()
         self.grade(test=pa1_copy)
         self.assertEqual(sorted(p.name for p in self.out.iterdir()), ["PA1", "PA2"])
-        self.assertEqual((self.out / "PA2" / "stu.txt").read_text(), pa2_sheet)
-        self.assertNotEqual((self.out / "PA1" / "stu.txt").read_text(), pa2_sheet)
+        self.assertEqual((self.out / "PA2" / "sheets" / "stu.txt").read_text(), pa2_sheet)
+        self.assertNotEqual((self.out / "PA1" / "sheets" / "stu.txt").read_text(), pa2_sheet)
         self.assertTrue((self.out / "PA1" / "CS_1998_S603_PA1_scores.csv").is_file())
         self.assertTrue((self.out / "PA2" / "CS_1998_S603_PA2_scores.csv").is_file())
         # Rerunning the same test replaces that test's sheet.
-        (self.out / "PA2" / "stu.txt").write_text("old")
+        (self.out / "PA2" / "sheets" / "stu.txt").write_text("old")
         self.grade(test=PA2)
-        self.assertEqual((self.out / "PA2" / "stu.txt").read_text(), pa2_sheet)
+        self.assertEqual((self.out / "PA2" / "sheets" / "stu.txt").read_text(), pa2_sheet)
 
     def test_only_one_run_at_a_time(self):
         (self.students / "stu").mkdir()
