@@ -79,13 +79,25 @@ class SubmissionTests(GraderTestCase):
         self.grade("--no-extra")
         self.assert_header(self.sheet("depth"), "0", "0", "10")
 
-    def test_test_file_in_zip_is_only_a_note(self):
+    def test_test_file_in_zip_costs_a_point(self):
         self.student_zip("b", submission(pa1_app(), extra={"proj/pa1_test.py": "x"}))
         self.grade()
         sheet = self.sheet("b")
-        self.assert_header(sheet, "0", "0", "10")
-        self.assertIn("Points lost: none", sheet)
-        self.assertIn("Notes:\n- The test file pa1_test.py was included", sheet)
+        self.assert_header(sheet, "-1", "0", "9")
+        self.assertIn("Points lost:\n-1  Included the test file\n", sheet)
+        self.assertNotIn("Notes:", sheet)
+
+    def test_test_file_and_venv_each_cost_a_point(self):
+        self.student_zip("both", submission(pa1_app(), extra={"proj/pa1_test.py": "x", "venv/pyvenv.cfg": "x"}))
+        self.grade()
+        sheet = self.sheet("both")
+        self.assert_header(sheet, "-2", "0", "8")
+        self.assertIn("-1  Zipped venv, .db, or pycache\n-1  Included the test file\n", sheet)
+
+    def test_test_file_inside_a_venv_does_not_count(self):
+        self.student_zip("vtest", submission(pa1_app(), extra={"proj/venv/pa1_test.py": "x"}))
+        self.grade()
+        self.assertNotIn("Included the test file", self.sheet("vtest"))
 
     def test_json_that_is_not_a_collection(self):
         self.student_zip("notpostman", {"app.py": pa1_app(), "README": "x", "c.json": '{"info": {}, "item": []}'})

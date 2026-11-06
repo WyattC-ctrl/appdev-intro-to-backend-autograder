@@ -42,6 +42,108 @@ grades/PA2/
 
 Rerunning a test replaces that test's results and leaves other tests alone.
 
+## Grade sheet format
+
+Each `.txt` sheet starts with the score, then shows only the sections that apply. A full sheet looks like this:
+
+```
+Total:         10
+Deductions:   -3.5
+Extra Credit: +1
+Score:         7.5
+
+Points lost:
+-1  Zipped venv, .db, or pycache
+-1  Included the test file
+-1.5  3 tests fail
+
+Core tests failed (3 of 10):
+- test_create_post: POST request to route '/api/posts/' returned a status code of 500, but 201 was expected.
+- test_delete_post: Creation of a post failed. See `test_create_post` results.
+- test_get_invalid_post: Using an invalid post id of 10000, GET request to route '/api/posts/10000/' did not return a JSON response.
+
+Extra credit:
++1  Implemented tier 1 challenge
+Tier 2 not earned (2 of 3 tests passed). Failed:
+- test_extra_sorting_posts: The list is not in increasing order.
+
+Notes:
+- 2 zip files were found; graded the largest, pa1.zip.
+
+Style feedback (no points lost):
+- app.py: add a comment or docstring to get_posts, create_post.
+- app.py: use snake_case for postId (line 42).
+```
+
+| Section | What it shows |
+|---|---|
+| Header | The total, deductions, extra credit, and score. The score never goes below 0 |
+| Points lost | Each deduction, or `Points lost: none` |
+| Core tests | Each failed test with a short reason, or `Core tests: all 10 passed` |
+| Extra credit | Tiers earned, then tiers not earned. Failed tests are listed only if at least one test in that tier passed |
+| Notes | Anything else about the run, such as multiple zips or tests that could not run |
+| Style feedback | Suggestions that cost no points. Left out when there are none |
+
+A student who lost no points and did not try the extra credit:
+
+```
+Total:         10
+Deductions:   0
+Extra Credit: 0
+Score:         10
+
+Points lost: none
+
+Core tests: all 10 passed
+
+Extra credit:
+Tier 1 not earned (0 of 3 tests passed).
+Tier 2 not earned (0 of 3 tests passed).
+```
+
+A student with no zip:
+
+```
+Total:         10
+Deductions:   -12
+Extra Credit: 0
+Score:         0
+
+Points lost:
+-10  Cannot find source code
+-1  No README
+-1  No exported Postman collection
+
+Notes:
+- No zip file was found in this student's folder.
+```
+
+When the tests cannot run, every core test counts as failed and the note gives the reason:
+
+```
+Total:         10
+Deductions:   -5
+Extra Credit: 0
+Score:         5
+
+Points lost:
+-5  10 tests fail
+
+Notes:
+- The tests could not run (import_error): ModuleNotFoundError: No module named 'db'
+```
+
+### Deductions
+
+| Deduction | Points |
+|---|---|
+| Cannot find source code (no `app.py`) | -10 |
+| Zipped venv, .db, or pycache | -1 |
+| Included the test file | -1 |
+| No README | -1 |
+| No exported Postman collection | -1 |
+| Each failing core test | -0.5, up to -10 |
+
 ## Before you upload
 
 Check that no student's tests failed to run:

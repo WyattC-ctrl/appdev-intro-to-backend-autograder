@@ -40,7 +40,7 @@ class StyleTests(GraderTestCase):
         }))
         self.grade("--no-extra")
         sheet = self.sheet("messy")
-        self.assert_header(sheet, "0", "0", "10")
+        self.assert_header(sheet, "-1", "0", "9")  # -1 for including pa1_test.py
         style = sheet.split("Style feedback (no points lost):\n")[1]
         self.assertIn("app.py: add a comment or docstring to", style)
         self.assertIn("noDocs", style)

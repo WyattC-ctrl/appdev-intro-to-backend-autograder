@@ -65,8 +65,6 @@ def note_lines(info, submission, run, extra_mode):
         notes.append("Extra credit was not checked for this run.")
     elif not info.tiers:
         notes.append("No tiers defined in the test file.")
-    if submission.has_test_file:
-        notes.append(f"The test file {info.path.name} was included in the zip. This costs no points.")
     if run and run["status"] != "ok":
         notes.append(f"The tests could not run ({run['status']}): {last_line(run.get('error'))}")
     return ["Notes:", *[f"- {note}" for note in notes]] if notes else []

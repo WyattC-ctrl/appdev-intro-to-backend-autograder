@@ -34,6 +34,8 @@ def points_lost(submission, failing_core):
         lost.append((10, "Cannot find source code"))
     if submission.has_venv_db_pycache:
         lost.append((1, "Zipped venv, .db, or pycache"))
+    if submission.has_test_file:
+        lost.append((1, "Included the test file"))
     if not submission.has_readme:
         lost.append((1, "No README"))
     if not submission.has_postman:
