@@ -24,8 +24,16 @@ class StubModule(types.ModuleType):
 
 
 class TestFileInfo:
-    def __init__(self, path, core, extra, tiers, bonuses, warnings):
+    def __init__(self, path, core, extra, tiers, bonuses, warnings, docker=False, rubric=None, extra_needs=None,
+                 remote=False, no_challenges=False, readme_fields=(), readme_questions=()):
         self.path = path
+        self.readme_fields = list(readme_fields)  # README template fields that must be filled in
+        self.readme_questions = list(readme_questions)  # README template questions that must be answered
+        self.remote = remote  # the tests call the student's deployed server
+        self.no_challenges = no_challenges  # the assignment has no extra credit
+        self.rubric = rubric or []  # [(section, [(test, points, label, lost label)])]
+        self.extra_needs = extra_needs  # (test, why) that must pass before extra credit counts
+        self.docker = docker  # the app runs with docker compose instead of being imported
         self.core = core
         self.extra = extra
         self.tiers = tiers
@@ -88,8 +96,9 @@ def load_test_file(path):
     raw_bonuses = getattr(module, "TIER_BONUS", None)
     bonuses = raw_bonuses if isinstance(raw_bonuses, dict) else {}
 
+    no_challenges = getattr(module, "NO_CHALLENGES", False) is True
     warnings = []
-    if not tiers:
+    if not tiers and not no_challenges:
         warnings.append(
             f"TIERS is missing or empty in {path.name}; no extra credit will be graded."
         )
@@ -104,4 +113,20 @@ def load_test_file(path):
         for name in extra:
             if name not in listed:
                 warnings.append(f'Extra-credit test "{name}" is not listed in any tier.')
-    return TestFileInfo(path, core, extra, tiers, bonuses, warnings)
+    docker = getattr(module, "DOCKER", False) is True
+    rubric = getattr(module, "RUBRIC", None) or []
+    if rubric:
+        listed = {item[0] for _, items in rubric for item in items}
+        for name in sorted(listed - set(core)):
+            warnings.append(f'Rubric test "{name}" is not a core test, so it can never pass.')
+        for name in core:
+            if name not in listed:
+                warnings.append(f'Core test "{name}" is not in the rubric, so it is worth no points.')
+    extra_needs = getattr(module, "EXTRA_CREDIT_NEEDS", None)
+    remote = getattr(module, "REMOTE", False) is True
+    readme_fields = getattr(module, "README_FIELDS", None) or ()
+    readme_questions = getattr(module, "README_QUESTIONS", None) or ()
+    return TestFileInfo(
+        path, core, extra, tiers, bonuses, warnings, docker, rubric, extra_needs, remote, no_challenges,
+        readme_fields, readme_questions,
+    )

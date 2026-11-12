@@ -2,6 +2,7 @@
 """Grade Flask assignment submissions. See README.md.
 
 python3 grade.py STUDENTS_FOLDER --test pa2_test.py [--no-extra] [--out DIR] [--column NAME]
+python3 grade.py STUDENT_ZIP --test pa2_test.py --student NETID [--no-extra] [--out DIR]
 python3 grade.py --list-tests --test pa2_test.py
 """
 import sys

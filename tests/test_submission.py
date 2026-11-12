@@ -12,10 +12,11 @@ class SubmissionTests(GraderTestCase):
         self.grade()
         sheet = self.sheet("d")
         self.assert_header(sheet, "-12", "0", "0")
-        self.assertIn("-10  Cannot find source code", sheet)
+        self.assertIn("-10  No app.py was found, so nothing could be graded\n-1   No README file\n", sheet)
+        self.assertIn("Challenges (extra credit): +0, not checked because no app.py was found", sheet)
         self.assertIn("No zip file was found in this student's folder.", sheet)
         self.assertNotIn("Style feedback", sheet)
-        self.assertNotIn("tests fail", sheet)
+        self.assertNotIn("core tests", sheet)
 
     def test_corrupt_zip(self):
         (self.students / "corrupt").mkdir()
@@ -49,7 +50,7 @@ class SubmissionTests(GraderTestCase):
         self.assert_header(self.sheet("c"), "-1", "0", "9")
 
     def test_three_levels_of_nested_zips(self):
-        level = {"app.py": pa1_app(), "README": "x", "c.json": POSTMAN}
+        level = {"app.py": pa1_app(), "README": "x", "postman_collection.json": POSTMAN}
         for depth in range(3):
             path = self.tmp / f"level{depth}.zip"
             write_zip(path, level)
@@ -66,12 +67,12 @@ class SubmissionTests(GraderTestCase):
         self.assert_header(self.sheet("venvzip"), "0", "0", "10")
 
     def test_app_and_readme_in_a_venv_do_not_count(self):
-        self.student_zip("venvapp", {"venv/app.py": "x", "venv/README": "x", "c.json": POSTMAN})
+        self.student_zip("venvapp", {"venv/app.py": "x", "venv/README": "x", "postman_collection.json": POSTMAN})
         self.grade("--no-extra")
         sheet = self.sheet("venvapp")
-        self.assertIn("Cannot find source code", sheet)
-        self.assertIn("-1  Zipped venv, .db, or pycache", sheet)
-        self.assertIn("-1  No README", sheet)
+        self.assertIn("No app.py was found", sheet)
+        self.assertIn("Included files that should not be submitted (venv, .db, __pycache__, or the test file)", sheet)
+        self.assertIn("No README file", sheet)
         self.assert_header(sheet, "-12", "0", "0")
 
     def test_shallowest_app_is_used(self):
@@ -79,30 +80,32 @@ class SubmissionTests(GraderTestCase):
         self.grade("--no-extra")
         self.assert_header(self.sheet("depth"), "0", "0", "10")
 
+    def test_app_in_src_beats_a_shallower_copy(self):
+        files = submission("raise RuntimeError('stray copy')")
+        files["proj/src/app.py"] = pa1_app()
+        self.student_zip("stray", files)
+        self.grade("--no-extra")
+        self.assert_header(self.sheet("stray"), "0", "0", "10")
+
     def test_test_file_in_zip_costs_a_point(self):
         self.student_zip("b", submission(pa1_app(), extra={"proj/pa1_test.py": "x"}))
         self.grade()
         sheet = self.sheet("b")
         self.assert_header(sheet, "-1", "0", "9")
-        self.assertIn("Points lost:\n-1  Included the test file\n", sheet)
+        self.assertIn("Points lost:\n-1  Included files that should not be submitted (venv, .db, __pycache__, or the test file)\n", sheet)
         self.assertNotIn("Notes:", sheet)
 
-    def test_test_file_and_venv_each_cost_a_point(self):
+    def test_test_file_and_venv_cost_one_point_together(self):
         self.student_zip("both", submission(pa1_app(), extra={"proj/pa1_test.py": "x", "venv/pyvenv.cfg": "x"}))
         self.grade()
         sheet = self.sheet("both")
-        self.assert_header(sheet, "-2", "0", "8")
-        self.assertIn("-1  Zipped venv, .db, or pycache\n-1  Included the test file\n", sheet)
-
-    def test_test_file_inside_a_venv_does_not_count(self):
-        self.student_zip("vtest", submission(pa1_app(), extra={"proj/venv/pa1_test.py": "x"}))
-        self.grade()
-        self.assertNotIn("Included the test file", self.sheet("vtest"))
+        self.assert_header(sheet, "-1", "0", "9")
+        self.assertEqual(sheet.count("should not be submitted"), 1)
 
     def test_json_that_is_not_a_collection(self):
-        self.student_zip("notpostman", {"app.py": pa1_app(), "README": "x", "c.json": '{"info": {}, "item": []}'})
+        self.student_zip("notpostman", {"app.py": pa1_app(), "README": "x", "postman_collection.json": '{"info": {}, "item": []}'})
         self.grade("--no-extra")
-        self.assertIn("-1  No exported Postman collection", self.sheet("notpostman"))
+        self.assertIn("-1  No exported Postman collection (.json)", self.sheet("notpostman"))
 
     def test_postman_schema_without_id_counts(self):
         def collection(info):
@@ -111,11 +114,26 @@ class SubmissionTests(GraderTestCase):
         other = collection({"name": "x", "schema": "https://example.com/schema.json"})
         no_item = json.dumps({"info": {"_postman_id": "abc"}})
         for name, text in (("good", good), ("other", other), ("noitem", no_item)):
-            self.student_zip(name, submission(pa1_app(), postman=False, extra={"proj/c.json": text}))
+            self.student_zip(name, submission(pa1_app(), postman=False, extra={"proj/postman_collection.json": text}))
+        self.student_zip("anyname", submission(pa1_app(), postman=False, extra={"proj/My Tests.postman_collection.json": POSTMAN}))
+        self.student_zip("both", submission(pa1_app(), extra={"proj/Tests/Get Posts.request.yaml": "x"}))
+        self.student_zip("workspace", submission(pa1_app(), extra={"proj/postman/collections/x.yaml": "x"}))
+        self.student_zip("json_in_folder", submission(pa1_app(), postman=False, extra={"proj/postman/c.json": POSTMAN}))
+        self.student_zip("folder", submission(pa1_app(), postman=False, extra={
+            "proj/Tests/.resources/definition.yaml": "$kind: collection\n",
+            "proj/Tests/Get Posts.request.yaml": "$kind: http-request\n",
+        }))
         self.grade("--no-extra")
         self.assert_header(self.sheet("good"), "0", "0", "10")
-        self.assertIn("-1  No exported Postman collection", self.sheet("other"))
-        self.assertIn("-1  No exported Postman collection", self.sheet("noitem"))
+        self.assert_header(self.sheet("anyname"), "0", "0", "10")
+        self.assert_header(self.sheet("folder"), "-1", "0", "9")
+        self.assertIn("-1  Included a Postman folder", self.sheet("folder"))
+        self.assert_header(self.sheet("both"), "-1", "0", "9")
+        self.assertIn("-1  Included a Postman folder", self.sheet("both"))
+        self.assert_header(self.sheet("workspace"), "-1", "0", "9")
+        self.assert_header(self.sheet("json_in_folder"), "0", "0", "10")
+        self.assertIn("-1  No exported Postman collection (.json)", self.sheet("other"))
+        self.assertIn("-1  No exported Postman collection (.json)", self.sheet("noitem"))
 
 
 if __name__ == "__main__":

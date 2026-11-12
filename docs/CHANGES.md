@@ -86,6 +86,45 @@ Line numbers refer to the uploaded files. Rows with several tests are the same c
 | test_extra_drop_course (1034) | `"length of courses filed"` | `"length of courses field"` | Typo in the message | |
 | 17 tests: test_create_bad_course, test_create_bad_user, test_create_bad_assignment_for_course, test_get_invalid_course, test_get_invalid_user, test_add_user_invalid_course, test_create_assignment_invalid_course, test_extra_drop_invalid_course, test_extra_drop_invalid_user, test_extra_drop_user_not_in_course, test_extra_update_invalid_assignment, test_extra_submit_invalid_assignment, test_extra_submit_invalid_user, test_extra_submit_invalid_assignment_for_user, test_grade_invalid_assignment, test_grade_invalid_submission, test_grade_wrong_submission_assignment | `assertIsNotNone(res.json()["error"], wrong_value_error(req_type, route, res.json()["error"], str, "error", "type of error field"))` | `assertIsNotNone(res.json().get("error"), wrong_value_error(req_type, route, res.json().get("error"), str, "type of error field"))` | A missing key raised KeyError instead of the assertion message, and the field name argument was wrong. Pass or fail is unchanged. | |
 
+## pa5_test.py
+
+New file. The course gives no PA5 test file, because graders run `docker-compose up -d` and try the route named in the README. This file does those steps for the grader, in the same format as the others. It sets `DOCKER = True`, so the grader starts the submission with `docker compose up -d` instead of importing `app.py`.
+
+The core tests follow the grader's PA5 rubric, set in `RUBRIC` with each test's points (10 in total). `EXTRA_CREDIT_NEEDS` gives extra credit only when `test_container_starts` passes.
+
+| Test | Points | Checks |
+|---|---|---|
+| test_dockerfile_in_src | 1 | `Dockerfile` in `src` |
+| test_dockerfile_installs_requirements | 1 | a `RUN pip install -r requirements.txt` line |
+| test_dockerfile_starts_app | 1 | a `CMD` or `ENTRYPOINT` line |
+| test_compose_in_src | 1 | `docker-compose.yml` in `src` |
+| test_compose_uses_docker_hub_image | 1 | an `image:` named `<username>/<repository>` |
+| test_compose_publishes_port | 1 | a `ports:` entry |
+| test_container_starts | 2 | `docker compose up -d` worked and the app answers |
+| test_route_returns_json | 2 | a GET route from the README, or `/api/courses/`, returns JSON with a status below 500 |
+| test_extra_python_distribution (Tier 1) | +1 | the final `FROM` is not the basic `python[:version]` image. The README explanation is not checked. |
+| test_extra_gunicorn_requirement (Tier 2) | | `requirements.txt` lists gunicorn |
+| test_extra_start_server_script (Tier 2) | | `start_server.sh` runs gunicorn with 4 workers |
+| test_extra_dockerfile_runs_script (Tier 2) | | the Dockerfile's `CMD` or `ENTRYPOINT` runs `start_server.sh` |
+| test_extra_gunicorn_serves_app (Tier 2) | +1 | the running container answers with gunicorn's `Server` header |
+
+`TIER_BONUS = {2: 1}`, as in the handout.
+
+`README_FIELDS` and `README_QUESTIONS` list the README template's fields and questions. The grader takes off 0.5 for each one left blank. `Challenges Attempted` is not listed, because a student who tried no challenges may leave it blank.
+
+## pa6_test.py
+
+New file. The course gives no PA6 test file. Graders visit the server address from the README. This file does that in the same format as the others. It sets `REMOTE = True`, so the grader runs the tests without starting `app.py` or Docker, and passes the student's folder name as the NetID. `NO_CHALLENGES = True` because PA6 has no extra credit. `README_FIELDS` and `README_QUESTIONS` list the README template's fields and questions, each −0.5 when blank.
+
+| Test | Points | Checks |
+|---|---|---|
+| test_server_is_reachable | 3 | the README's server address answers |
+| test_base_endpoint | 2 | `GET /` returns 200 and `"<netid> was here!"` |
+| test_working_endpoint | 2 | a GET route from the README, or `/api/courses/`, returns JSON with a status below 500 |
+| test_env_file | 1 | `src/.env` contains the NetID |
+| test_netid_read_from_env | 1 | `app.py` uses `getenv`, `environ`, or dotenv, and doesn't hardcode `"<netid> was here"` |
+| test_deployment_files | 1 | `Dockerfile`, `docker-compose.yml`, and `.dockerignore` in `src` |
+
 ## Noticed and left alone
 
 - pa2: debug `print` calls in `_get_user_and_assert_balance`, `_send_money`, and test_extra_get_user_unauthorized. They do not affect results.

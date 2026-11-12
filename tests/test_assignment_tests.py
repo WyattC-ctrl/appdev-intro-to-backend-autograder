@@ -16,11 +16,11 @@ class Pa1Tests(GraderTestCase):
         self.assert_header(self.sheet("loose"), "0", "+2", "12")
         bare = self.sheet("bare")
         self.assertIn("Core tests: all 10 passed", bare)
-        self.assertIn("Tier 1 not earned (0 of 3 tests passed).", bare)
+        self.assertIn("Tier 1: +0, not earned (0 of 3 tests passed)\n", bare)
         nodefault = self.sheet("nodefault")
         self.assert_header(nodefault, "0", "+1", "11")
         self.assertIn(
-            "Tier 2 not earned (2 of 3 tests passed). Failed:\n"
+            "Tier 2: +0, not earned (2 of 3 tests passed). Failed:\n"
             "- test_extra_upvote_default: POST request to route '/api/extra/posts/",
             nodefault,
         )
@@ -33,7 +33,7 @@ class Pa2Tests(GraderTestCase):
         self.grade(test=PA2)
         sheet = self.sheet("hash")
         self.assert_header(sheet, "0", "+1", "11")
-        self.assertIn("+1  Implemented tier 1 challenge", sheet)
+        self.assertIn("Challenges (extra credit): +1 received\nTier 1: +1, earned (5 of 5 tests passed)", sheet)
 
     def test_no_password_must_be_rejected(self):
         app = PA2_APP.replace('if keep_password and body.get("password") is None:', "if False:")

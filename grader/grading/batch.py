@@ -6,12 +6,13 @@ from pathlib import Path
 from grader.grading.scoring import score_submission
 from grader.output.feedback_zip import write_feedback_zip
 from grader.output.formatting import number
-from grader.output.scores_csv import SCORE_COLUMNS, write_scores_csv
+from grader.output.scores_csv import NO_SUBMISSION, SCORE_COLUMNS, write_scores_csv
 from grader.output.sheet import build_sheet
 from grader.paths import SHEETS_FOLDER, assignment_id
 from grader.running.runner import run_student_tests
 from grader.style.feedback import style_feedback
 from grader.submissions.contents import inspect_submission
+from grader.submissions.readme import blank_answers, find_readme
 
 
 def grade_student(student_dir, info, no_extra, sheets_dir):
@@ -24,6 +25,10 @@ def grade_student(student_dir, info, no_extra, sheets_dir):
         extract_dir.mkdir()
         submission = inspect_submission(student_dir, extract_dir, info.path.name)
         run = None
+        if submission.app_dir is not None and (info.readme_fields or info.readme_questions):
+            readme = find_readme(submission.app_dir)
+            if readme is not None:
+                submission.readme_blanks = blank_answers(readme, info.readme_fields, info.readme_questions)
         if submission.app_dir is not None:
             try:
                 submission.style = style_feedback(submission.app_dir, info.path.name)
@@ -34,6 +39,9 @@ def grade_student(student_dir, info, no_extra, sheets_dir):
                 info.path,
                 work / "results.json",
                 "extra" if run_extra_tests else "core",
+                docker=info.docker,
+                remote=info.remote,
+                netid=student_dir.name,
             )
         result = score_submission(info, submission, run, not no_extra)
         sheet = build_sheet(info, submission, run, not no_extra, result)
@@ -61,7 +69,7 @@ def grade_folder(students, info, test_path, out_dir, no_extra, column):
             score, status, has_zip = grade_student(student_dir, info, no_extra, sheets_dir)
             print(f"{student_dir.name}: score {number(score)} ({status})", flush=True)
             port_busy += status == "port_busy"
-            rows.append((student_dir.name, score, "" if has_zip else "No submission"))
+            rows.append((student_dir.name, score, "" if has_zip else NO_SUBMISSION))
         except Exception as error:  # one student must never stop the batch
             print(f"{student_dir.name}: could not grade ({error})", flush=True)
             rows.append((student_dir.name, None, ""))

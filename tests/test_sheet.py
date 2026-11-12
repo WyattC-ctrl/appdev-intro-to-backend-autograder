@@ -17,12 +17,12 @@ class SheetTests(GraderTestCase):
         self.assertEqual(sheet.split("\n\nStyle feedback")[0] + "\n", (
             "Total:         10\nDeductions:   -2\nExtra Credit: 0\nScore:         8\n\n"
             "Points lost:\n"
-            "-1  Zipped venv, .db, or pycache\n"
-            "-1  No exported Postman collection\n\n"
+            "-1  Included files that should not be submitted (venv, .db, __pycache__, or the test file)\n"
+            "-1  No exported Postman collection (.json)\n\n"
             "Core tests: all 10 passed\n\n"
-            "Extra credit:\n"
-            "Tier 1 not earned (0 of 3 tests passed).\n"
-            "Tier 2 not earned (0 of 3 tests passed).\n"
+            "Challenges (extra credit): +0, no challenge points received\n"
+            "Tier 1: +0, not earned (0 of 3 tests passed)\n"
+            "Tier 2: +0, not earned (0 of 3 tests passed)\n"
         ))
         self.assertIn("\n\nStyle feedback (no points lost):\n- app.py: add a comment or docstring to", sheet)
 
@@ -31,8 +31,8 @@ class SheetTests(GraderTestCase):
         self.grade()
         sheet = self.sheet("f")
         self.assert_header(sheet, "-1.5", "0", "8.5")
-        self.assertIn("-1.5  3 tests fail", sheet)
-        self.assertIn("Core tests failed (3 of 10):\n- test_", sheet)
+        self.assertIn("-1.5  3 core tests failed, -0.5 each (listed below)", sheet)
+        self.assertIn("Core tests failed (3 of 10, -0.5 each):\n- test_", sheet)
         self.assertEqual(len(re.findall(r"(?m)^- test_", sheet)), 3)
 
     def test_test_deduction_is_capped_and_score_stops_at_zero(self):
@@ -40,7 +40,7 @@ class SheetTests(GraderTestCase):
         self.grade(test=self.write_test_file("many_test.py", TWENTY_FIVE_FAILING))
         sheet = self.sheet("l")
         self.assert_header(sheet, "-10", "0", "0")
-        self.assertIn("-10  25 tests fail", sheet)
+        self.assertIn("-10  25 core tests failed, -0.5 each (listed below)", sheet)
 
     def test_both_tiers_earned(self):
         self.student_zip("g", submission(pa1_app(challenge=ALL_CHALLENGE)))
@@ -48,7 +48,12 @@ class SheetTests(GraderTestCase):
         sheet = self.sheet("g")
         self.assert_header(sheet, "0", "+2", "12")
         self.assertIn("Core tests: all 10 passed", sheet)
-        self.assertIn("Extra credit:\n+1  Implemented tier 1 challenge\n+1  Implemented tier 2 challenge\n", sheet)
+        self.assertIn(
+            "Challenges (extra credit): +2 received\n"
+            "Tier 1: +1, earned (3 of 3 tests passed)\n"
+            "Tier 2: +1, earned (3 of 3 tests passed)\n",
+            sheet,
+        )
         self.assertNotIn("not earned", sheet)
 
     def test_one_tier_earned_lists_what_failed_in_the_other(self):
@@ -56,18 +61,20 @@ class SheetTests(GraderTestCase):
         self.grade()
         sheet = self.sheet("i")
         self.assert_header(sheet, "0", "+1", "11")
-        self.assertIn("Tier 2 not earned (2 of 3 tests passed). Failed:\n- test_extra_sorting_posts: ", sheet)
-        self.assertIn("+1  Implemented tier 1 challenge\n", sheet)
-        self.assertNotIn("Implemented tier 2", sheet)
+        self.assertIn(
+            "Challenges (extra credit): +1 received\n"
+            "Tier 1: +1, earned (3 of 3 tests passed)\n"
+            "Tier 2: +0, not earned (2 of 3 tests passed). Failed:\n- test_extra_sorting_posts: ",
+            sheet,
+        )
 
     def test_no_extra_option(self):
         self.student_zip("h", submission(pa1_app(challenge=ALL_CHALLENGE)))
         self.grade("--no-extra")
         sheet = self.sheet("h")
         self.assert_header(sheet, "0", "0", "10")
-        self.assertIn("Extra credit was not checked for this run.", sheet)
-        self.assertNotIn("ier 1", sheet)
-        self.assertNotIn("Implemented", sheet)
+        self.assertIn("Challenges (extra credit): not checked for this run\n", sheet)
+        self.assertNotIn("Tier 1", sheet)
 
     def test_no_tiers_in_test_file(self):
         self.student_zip("j", submission(pa1_app(challenge=ALL_CHALLENGE)))
@@ -77,7 +84,7 @@ class SheetTests(GraderTestCase):
         self.assertEqual(out.count("Warning:"), 1)
         sheet = self.sheet("j")
         self.assert_header(sheet, "0", "0", "10")
-        self.assertIn("No tiers defined in the test file.", sheet)
+        self.assertIn("Challenges (extra credit): not graded, because the test file defines no tiers", sheet)
 
     def test_empty_tiers_give_no_credit_when_extra_tests_would_pass(self):
         self.student_zip("m", submission(PA2_APP))
@@ -87,7 +94,7 @@ class SheetTests(GraderTestCase):
         sheet = self.sheet("m")
         self.assert_header(sheet, "0", "0", "10")
         self.assertIn("Core tests: all 8 passed", sheet)
-        self.assertIn("No tiers defined in the test file.", sheet)
+        self.assertIn("Challenges (extra credit): not graded, because the test file defines no tiers", sheet)
 
     def test_tier_bonus(self):
         apps = {"both": "A B", "only1": "A", "only2": "B", "none": ""}
@@ -98,15 +105,16 @@ class SheetTests(GraderTestCase):
         both = self.sheet("both")
         self.assert_header(both, "0", "+3", "13")
         self.assertIn(
-            "+1  Implemented tier 1 challenge\n"
-            "+1  Implemented tier 2 challenge\n"
-            "+1  Completed all tiers through tier 2\n",
+            "Challenges (extra credit): +3 received\n"
+            "Tier 1: +1, earned (1 of 1 test passed)\n"
+            "Tier 2: +1, earned (1 of 1 test passed)\n"
+            "Bonus: +1, earned for completing tiers 1 and 2\n",
             both,
         )
         self.assert_header(self.sheet("only1"), "0", "+1", "11")
         only2 = self.sheet("only2")
         self.assert_header(only2, "0", "+1", "11")
-        self.assertNotIn("Completed all tiers", only2)
+        self.assertIn("Bonus: +0, not earned (worth +1 when tiers 1 and 2 are all earned)", only2)
         self.assert_header(self.sheet("none"), "0", "0", "10")
 
 

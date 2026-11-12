@@ -1,6 +1,9 @@
 """Run one student's Flask app against a test file and write the results as JSON.
 
-Usage: python -I run_one.py APP_DIR TEST_PATH RESULTS_JSON extra|core
+Usage: python -I run_one.py APP_DIR TEST_PATH RESULTS_JSON extra|core [external]
+
+With "external", the app is already running somewhere else, in the student's
+containers (PA5) or on their deployed server (PA6), so this only runs the tests.
 
 Runs in its own process with -I, so it can only import the standard library, not
 the rest of this package.
@@ -44,11 +47,11 @@ def split_tests(test_class):
     return core, extra
 
 
-def port_is_busy():
+def port_is_busy(port=PORT):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
-            sock.bind(("0.0.0.0", PORT))
+            sock.bind(("0.0.0.0", port))
         except OSError:
             return True
     # A listener on one specific address can survive the wildcard bind above,
@@ -57,7 +60,7 @@ def port_is_busy():
         try:
             with socket.socket(family, socket.SOCK_STREAM) as sock:
                 sock.settimeout(1)
-                if sock.connect_ex((host, PORT)) == 0:
+                if sock.connect_ex((host, port)) == 0:
                     return True
         except OSError:
             pass
@@ -152,7 +155,29 @@ def write_results(path, status, error=None, tests=None, reasons=None):
         json.dump({"status": status, "error": error, "tests": tests or {}, "reasons": reasons or {}}, out)
 
 
-def run(app_dir, test_path, results_path, mode):
+def import_test_file(test_path):
+    spec = importlib.util.spec_from_file_location("graded_tests", test_path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def run_against_containers(test_path, results_path, mode):
+    try:
+        module = import_test_file(test_path)
+    except BaseException:
+        write_results(results_path, "import_error", traceback.format_exc())
+        return
+    module.EXTRA_CREDIT = mode == "extra"
+    tests, reasons = run_tests(module.TestRoutes, mode)
+    write_results(results_path, "ok", None, tests, reasons)
+
+
+def run(app_dir, test_path, results_path, mode, external=False):
+    if external:
+        run_against_containers(test_path, results_path, mode)
+        return
     if port_is_busy():
         write_results(results_path, "port_busy", PORT_BUSY_HINT)
         return
@@ -161,10 +186,7 @@ def run(app_dir, test_path, results_path, mode):
     sys.path.append(app_dir)
     try:
         load_env_file(app_dir)
-        spec = importlib.util.spec_from_file_location("graded_tests", test_path)
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[spec.name] = module
-        spec.loader.exec_module(module)
+        module = import_test_file(test_path)
     except BaseException:
         write_results(results_path, "import_error", traceback.format_exc())
         return
@@ -195,7 +217,8 @@ def run(app_dir, test_path, results_path, mode):
 def main():
     results_path = sys.argv[3] if len(sys.argv) > 3 else None
     try:
-        run(sys.argv[1], sys.argv[2], results_path, sys.argv[4])
+        external = len(sys.argv) > 5 and sys.argv[5] == "external"
+        run(sys.argv[1], sys.argv[2], results_path, sys.argv[4], external)
     except BaseException:
         if results_path:
             try:

@@ -36,7 +36,7 @@ def submission(app, readme=True, postman=True, extra=None):
     if readme:
         files["proj/README.md"] = "readme"
     if postman:
-        files["proj/collection.json"] = POSTMAN
+        files["proj/postman_collection.json"] = POSTMAN
     files.update(extra or {})
     return files
 
@@ -105,3 +105,12 @@ class GraderTestCase(unittest.TestCase):
         self.assertIn(f"Deductions:   {deductions}\n", sheet)
         self.assertIn(f"\nExtra Credit: {extra}\n", sheet)
         self.assertIn(f"\nScore:         {score}\n", sheet)
+
+
+def filled_readme(test_module, values):
+    """A README that fills in every field and question the test file checks."""
+    lines = [f"{field}: {values.get(field, 'answer')}" for field in test_module.README_FIELDS]
+    lines.append("Questions:")
+    for question in test_module.README_QUESTIONS:
+        lines += [question, "An answer.", ""]
+    return "\n".join(lines)
