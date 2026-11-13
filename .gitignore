@@ -1,6 +1,6 @@
 # Student grades and any submissions
 grades/
-Submissions*/
+/Submissions*/
 *.zip
 
 # Local environment
